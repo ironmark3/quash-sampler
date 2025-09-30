@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: quash-sampler-backend
+    runtime: node
+    rootDir: quash-sampler-backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
