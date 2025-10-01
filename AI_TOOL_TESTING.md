@@ -316,11 +316,84 @@ curl http://localhost:3000/ai/get-otp/test@example.com
 # Step 3: AI enters OTP (636853) in app → Success
 ```
 
-## Future Endpoints (Phases 2-5)
+## Phase 2: Enhanced Onboarding (COMPLETED)
 
-### Phase 2: Enhanced Onboarding
-- `POST /profile/setup` - Complete profile setup flow
-- `GET /profile/onboarding-status` - Check onboarding progress
+### Onboarding Flow Testing
+
+After successful OTP verification, new users with `isProfileComplete: false` are automatically routed to the onboarding flow.
+
+**4-Step Onboarding Wizard:**
+1. **Welcome Step** - Introduction and overview
+2. **Personal Info** - Name collection (required)
+3. **Contact Details** - Address and date of birth (optional)
+4. **Role Selection** - Choose from Reporter, Developer, or QA
+5. **Welcome Completion** - Role-based success screen
+
+### Profile Completion Logic (Updated)
+
+**Required Fields for Completion:**
+- `name` (required)
+- `role` (required)
+- Contact info: `email` OR `phone` (at least one)
+
+**Optional Enhancement Fields:**
+- `address`
+- `dateOfBirth`
+
+**Completion Percentage Calculation:**
+- Core fields (name, role): 30 points each
+- Contact info: 20 points
+- Optional fields: 10 points each
+- Total possible: 100 points
+
+### Role Selection Options
+
+**Reporter:**
+- Find and report bugs to help improve software quality
+- Responsibilities: Identify bugs, provide reproduction steps, test features
+
+**Developer:**
+- Build, fix, and enhance software applications
+- Responsibilities: Write code, fix bugs, implement features
+
+**QA Engineer:**
+- Ensure software quality through systematic testing
+- Responsibilities: Design test cases, perform testing, validate fixes
+
+### AI Tool Testing: Complete Onboarding Flow
+
+```bash
+# 1. Verify OTP (new user)
+curl -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId": "SESSION_ID", "otp": "OTP_CODE"}'
+
+# Response will show isProfileComplete: false for new users
+
+# 2. Complete profile via onboarding (simulates mobile app flow)
+curl -X PUT http://localhost:3000/profile/USER_ID \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jane Doe",
+    "address": "123 Developer St",
+    "dateOfBirth": "1990-05-15",
+    "role": "Developer"
+  }'
+
+# 3. Verify completion
+curl -X GET http://localhost:3000/profile/USER_ID
+
+# Response will now show isProfileComplete: true
+```
+
+### Conditional Routing Behavior
+
+**For AI Tool Testing:**
+- New users (first OTP): `isProfileComplete: false` → Onboarding required
+- Returning users: `isProfileComplete: true` → Direct to home
+- Skipped onboarding: Profile remains incomplete, can complete later
+
+## Future Endpoints (Phases 3-5)
 
 ### Phase 3: Bug Reporting
 - `POST /bugs` - Create bug report
@@ -344,14 +417,24 @@ curl http://localhost:3000/ai/get-otp/test@example.com
 ✅ **Phase 1 Complete:**
 - MongoDB connection and schemas
 - User authentication with OTP
-- Profile management
+- Profile management APIs
 - User search and statistics
 - File upload middleware (ready for bug attachments)
 
-🔄 **Next: Phase 2**
-- Enhanced onboarding flow
-- Profile completion wizard
-- Role-based UI components
+✅ **Phase 2 Complete:**
+- 4-step onboarding wizard flow
+- Conditional routing based on profile completion
+- Role selection with detailed descriptions
+- Welcome completion screen with role-based messaging
+- Updated profile completion logic (realistic requirements)
+- HomeScreen real-time user data integration
+- Skip/complete later options throughout flow
+- ProfileScreen for profile editing
+
+🔄 **Next: Phase 3**
+- Bug reporting core features
+- Bug creation, editing, and management
+- Comment system and status tracking
 
 ## Testing Notes for AI Tool
 
@@ -359,8 +442,11 @@ curl http://localhost:3000/ai/get-otp/test@example.com
 2. **Rate Limiting:** Maximum 3 OTP attempts per session
 3. **Data Persistence:** All user data is stored in MongoDB Atlas
 4. **Unique Constraints:** Email and phone must be unique across users
-5. **Profile Completion:** Requires name, email/phone, address, dateOfBirth, role
+5. **Profile Completion:** Requires name, role, and email/phone (realistic requirements)
 6. **AI Endpoint:** `/ai/get-otp/:identifier` is specifically for automated testing
+7. **Onboarding Flow:** New users automatically routed to 4-step wizard after OTP
+8. **Conditional Navigation:** App behavior changes based on `isProfileComplete` status
+9. **Real User Data:** HomeScreen displays actual user data, not hardcoded values
 
 ## Environment Configuration
 
