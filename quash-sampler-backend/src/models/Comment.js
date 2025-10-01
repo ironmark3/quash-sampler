@@ -6,12 +6,12 @@ const commentSchema = new mongoose.Schema({
     ref: 'BugReport',
     required: true
   },
-  userId: {
+  author: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  comment: {
+  content: {
     type: String,
     required: true,
     trim: true,
@@ -58,7 +58,7 @@ const commentSchema = new mongoose.Schema({
 
 // Indexes for better query performance
 commentSchema.index({ bugId: 1, createdAt: -1 });
-commentSchema.index({ userId: 1 });
+commentSchema.index({ author: 1 });
 
 // Virtual for reaction counts
 commentSchema.virtual('reactionCounts').get(function() {
@@ -92,7 +92,7 @@ commentSchema.methods.toggleReaction = function(userId, reactionType) {
 
 // Pre-save middleware to handle edits
 commentSchema.pre('save', function(next) {
-  if (this.isModified('comment') && !this.isNew) {
+  if (this.isModified('content') && !this.isNew) {
     this.isEdited = true;
     this.editedAt = new Date();
   }

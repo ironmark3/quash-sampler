@@ -59,6 +59,15 @@ app.listen(PORT, async () => {
   console.log(`   GET  /profile/:userId/completion - Check profile completion`);
   console.log(`   GET  /users/search - Search users`);
   console.log(`   GET  /users/stats - Get user statistics`);
+  console.log(`   POST /bugs - Create bug report`);
+  console.log(`   GET  /bugs - List bug reports`);
+  console.log(`   GET  /bugs/stats - Get bug statistics`);
+  console.log(`   GET  /bugs/:bugId - Get specific bug`);
+  console.log(`   PUT  /bugs/:bugId - Update bug report`);
+  console.log(`   PUT  /bugs/:bugId/assign - Assign bug to user`);
+  console.log(`   DELETE /bugs/:bugId - Delete bug report`);
+  console.log(`   POST /bugs/:bugId/comments - Add comment to bug`);
+  console.log(`   GET  /bugs/:bugId/comments - Get bug comments`);
   console.log(`   GET  /health - Health check`);
   console.log(`   GET  /ai/get-otp/:identifier - Get OTP by phone/email (AI tool)`);
   if (NODE_ENV !== 'production') {

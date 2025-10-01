@@ -1,6 +1,7 @@
 const express = require('express');
 const { generateOTP, generateSessionId, storeOTP, verifyOTP, getOTPForTesting, getOTPByIdentifier } = require('./otpService');
 const UserService = require('./services/userService');
+const bugRoutes = require('./routes/bugRoutes');
 
 const router = express.Router();
 
@@ -302,6 +303,9 @@ router.get('/users/stats', async (req, res) => {
     });
   }
 });
+
+// Bug reporting routes
+router.use('/bugs', bugRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

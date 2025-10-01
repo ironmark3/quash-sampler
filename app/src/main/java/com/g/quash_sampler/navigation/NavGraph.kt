@@ -12,6 +12,7 @@ import com.g.quash_sampler.ui.onboarding.OnboardingScreen
 import com.g.quash_sampler.ui.otp.OtpScreen
 import com.g.quash_sampler.ui.profile.ProfileScreen
 import com.g.quash_sampler.ui.splash.SplashScreen
+import com.g.quash_sampler.ui.bugreport.BugReportScreen
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
@@ -27,6 +28,9 @@ sealed class Screen(val route: String) {
     }
     data object Profile : Screen("profile/{userId}") {
         fun createRoute(userId: String) = "profile/$userId"
+    }
+    data object BugReport : Screen("bug-report/{userId}") {
+        fun createRoute(userId: String) = "bug-report/$userId"
     }
 }
 
@@ -114,6 +118,9 @@ fun NavGraph(navController: NavHostController) {
                 userId = userId,
                 onNavigateToProfile = { profileUserId ->
                     navController.navigate(Screen.Profile.createRoute(profileUserId))
+                },
+                onNavigateToBugReport = { bugReportUserId ->
+                    navController.navigate(Screen.BugReport.createRoute(bugReportUserId))
                 }
             )
         }
@@ -129,6 +136,26 @@ fun NavGraph(navController: NavHostController) {
                 userId = userId,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = Screen.BugReport.route,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            BugReportScreen(
+                userId = userId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.createRoute(userId)) {
+                        popUpTo(Screen.BugReport.route) { inclusive = true }
+                    }
                 }
             )
         }

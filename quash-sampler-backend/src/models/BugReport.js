@@ -4,7 +4,7 @@ const bugReportSchema = new mongoose.Schema({
   bugId: {
     type: String,
     unique: true,
-    required: true
+    required: false
   },
   title: {
     type: String,
@@ -20,7 +20,7 @@ const bugReportSchema = new mongoose.Schema({
   },
   stepsToReproduce: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
     maxlength: 1000
   },
@@ -42,7 +42,7 @@ const bugReportSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['UI', 'Backend', 'Performance', 'Security', 'Feature', 'Other'],
+    enum: ['UI/UX', 'Functionality', 'Performance', 'Security', 'Compatibility', 'Data', 'Other'],
     required: true,
     default: 'Other'
   },
@@ -51,7 +51,7 @@ const bugReportSchema = new mongoose.Schema({
     enum: ['Open', 'In Progress', 'Testing', 'Resolved', 'Closed', 'Reopened'],
     default: 'Open'
   },
-  reporterId: {
+  reporter: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
@@ -72,32 +72,16 @@ const bugReportSchema = new mongoose.Schema({
     }
   }],
   environment: {
-    deviceType: {
-      type: String,
-      trim: true
-    },
-    osVersion: {
-      type: String,
-      trim: true
-    },
-    appVersion: {
-      type: String,
-      trim: true
-    },
-    browser: {
-      type: String,
-      trim: true
-    },
-    networkCondition: {
-      type: String,
-      trim: true
-    }
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 500
   },
   priority: {
-    type: Number,
-    default: 1,
-    min: 1,
-    max: 5
+    type: String,
+    enum: ['Low', 'Medium', 'High', 'Critical'],
+    required: true,
+    default: 'Medium'
   },
   tags: [{
     type: String,
@@ -121,7 +105,7 @@ const bugReportSchema = new mongoose.Schema({
 
 // Indexes for better query performance
 bugReportSchema.index({ bugId: 1 });
-bugReportSchema.index({ reporterId: 1 });
+bugReportSchema.index({ reporter: 1 });
 bugReportSchema.index({ assignedTo: 1 });
 bugReportSchema.index({ status: 1 });
 bugReportSchema.index({ severity: 1 });
@@ -130,7 +114,7 @@ bugReportSchema.index({ createdAt: -1 });
 
 // Compound indexes for common queries
 bugReportSchema.index({ status: 1, severity: 1 });
-bugReportSchema.index({ reporterId: 1, status: 1 });
+bugReportSchema.index({ reporter: 1, status: 1 });
 bugReportSchema.index({ assignedTo: 1, status: 1 });
 
 // Virtual for calculating days since creation
