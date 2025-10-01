@@ -105,3 +105,21 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
+
+tasks.register("run") {
+    group = "application"
+    description = "Install the debug APK and show launch instructions"
+    dependsOn("installDebug")
+
+    doLast {
+        println()
+        println("✅ App installed successfully!")
+        println("📱 To launch the app:")
+        println("   1. Open your emulator/device")
+        println("   2. Find 'Quash Sampler' in the app drawer")
+        println("   3. Tap to launch")
+        println()
+        println("🚀 Or run: adb shell am start -n com.g.quash_sampler/.MainActivity")
+        println()
+    }
+}

@@ -4,6 +4,7 @@ const routes = require('./routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Middleware
 app.use(cors());
@@ -41,10 +42,15 @@ app.listen(PORT, () => {
   console.log('\n🚀 Quash Sampler Backend Server');
   console.log('================================');
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${NODE_ENV}`);
   console.log(`\n📝 Available endpoints:`);
   console.log(`   POST /auth/login - Request OTP`);
   console.log(`   POST /auth/verify-otp - Verify OTP`);
   console.log(`   GET  /health - Health check`);
+  console.log(`   GET  /ai/get-otp/:identifier - Get OTP by phone/email (AI tool)`);
+  if (NODE_ENV !== 'production') {
+    console.log(`   GET  /test/get-otp/:sessionId - Get OTP for testing`);
+  }
   console.log('\n💡 Use ngrok to expose: ngrok http 3000');
   console.log('================================\n');
 });

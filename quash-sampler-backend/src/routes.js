@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateOTP, generateSessionId, storeOTP, verifyOTP } = require('./otpService');
+const { generateOTP, generateSessionId, storeOTP, verifyOTP, getOTPForTesting, getOTPByIdentifier } = require('./otpService');
 
 const router = express.Router();
 
@@ -55,11 +55,9 @@ router.post('/auth/login', (req, res) => {
   res.json({
     success: true,
     message: isPhone
-      ? `OTP sent to your phone. Use: ${otp}`
-      : `OTP sent to your email. Use: ${otp}`,
-    sessionId,
-    // Demo mode - always show OTP
-    _debug_otp: otp
+      ? "OTP sent to your phone"
+      : "OTP sent to your email",
+    sessionId
   });
 });
 
@@ -88,6 +86,41 @@ router.post('/auth/verify-otp', (req, res) => {
     });
   } else {
     res.status(401).json(result);
+  }
+});
+
+// Testing endpoint to get OTP (development only)
+router.get('/test/get-otp/:sessionId', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ message: 'Not found' });
+  }
+
+  const { sessionId } = req.params;
+  const otp = getOTPForTesting(sessionId);
+
+  if (otp) {
+    res.json({ otp, sessionId });
+  } else {
+    res.status(404).json({ message: 'Session not found or expired' });
+  }
+});
+
+// AI Tool endpoint - Get OTP by phone/email (for AI testing)
+router.get('/ai/get-otp/:identifier', (req, res) => {
+
+  const { identifier } = req.params;
+  const result = getOTPByIdentifier(identifier);
+
+  if (result) {
+    res.json({
+      otp: result.otp,
+      sessionId: result.sessionId,
+      identifier: result.identifier
+    });
+  } else {
+    res.status(404).json({
+      message: 'No OTP found for this phone/email. Make sure to request OTP first.'
+    });
   }
 });
 
