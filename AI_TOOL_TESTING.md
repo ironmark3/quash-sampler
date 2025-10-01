@@ -1,20 +1,298 @@
-# AI Tool Testing - OTP Validation
+# AI Tool Testing Documentation
 
-## Test Case: Phone/Email OTP Validation
+This document provides comprehensive API testing flows for the Quash Sampler Bug Reporting System, designed for AI tool validation and automated testing.
 
-### Description
-AI tool enters phone/email in app, retrieves OTP via API, then enters OTP to complete login.
-
-## API Endpoint
-
-**Get OTP by Phone/Email:**
+## Base URL
 ```
-GET /ai/get-otp/{identifier}
+http://localhost:3000
 ```
 
-## Testing Steps
+## Authentication Flow
 
-### 1. Phone Number Test
+### 1. Request OTP
+**Endpoint:** `POST /auth/login`
+
+**Request:**
+```json
+{
+  "identifier": "test@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP sent to your email",
+  "sessionId": "session_1759325757732_q2l661xvv"
+}
+```
+
+**AI Tool Usage:**
+- Use email or phone number as identifier
+- Store the sessionId for OTP verification
+- Valid formats: email (`user@example.com`) or phone (`+1234567890`)
+
+### 2. Get OTP (AI Tool Endpoint)
+**Endpoint:** `GET /ai/get-otp/:identifier`
+
+**Example:** `GET /ai/get-otp/test@example.com`
+
+**Response:**
+```json
+{
+  "otp": "367888",
+  "sessionId": "session_1759325757732_q2l661xvv",
+  "identifier": "test@example.com"
+}
+```
+
+**AI Tool Usage:**
+- Use this endpoint to programmatically retrieve OTP
+- Replace `:identifier` with the email/phone used in login
+- This endpoint is specifically designed for AI testing
+
+### 3. Verify OTP
+**Endpoint:** `POST /auth/verify-otp`
+
+**Request:**
+```json
+{
+  "sessionId": "session_1759325757732_q2l661xvv",
+  "otp": "367888"
+}
+```
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "token": "token_1759325776928_9vo71ajbp",
+  "user": {
+    "id": "68dd2e50d69be892dbfc0269",
+    "name": "New User",
+    "email": "test@example.com",
+    "phone": null,
+    "role": "Reporter",
+    "isProfileComplete": false
+  }
+}
+```
+
+**AI Tool Usage:**
+- Store the user ID for subsequent API calls
+- Store the token for authentication (future implementation)
+- First-time users will have `isProfileComplete: false`
+
+## Profile Management
+
+### 4. Get User Profile
+**Endpoint:** `GET /profile/:userId`
+
+**Example:** `GET /profile/68dd2e50d69be892dbfc0269`
+
+**Response:**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "68dd2e50d69be892dbfc0269",
+    "name": "New User",
+    "email": "test@example.com",
+    "phone": null,
+    "address": null,
+    "dateOfBirth": null,
+    "role": "Reporter",
+    "isProfileComplete": false,
+    "profileCompletionPercentage": 50
+  }
+}
+```
+
+### 5. Update User Profile
+**Endpoint:** `PUT /profile/:userId`
+
+**Request:**
+```json
+{
+  "name": "John Doe",
+  "address": "123 Main St, City, State",
+  "dateOfBirth": "1990-01-15",
+  "role": "Developer"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "user": {
+    "id": "68dd2e50d69be892dbfc0269",
+    "name": "John Doe",
+    "email": "test@example.com",
+    "phone": null,
+    "address": "123 Main St, City, State",
+    "dateOfBirth": "1990-01-15T00:00:00.000Z",
+    "role": "Developer",
+    "isProfileComplete": true,
+    "profileCompletionPercentage": 83
+  }
+}
+```
+
+**AI Tool Usage:**
+- Valid roles: `Reporter`, `Developer`, `QA`
+- Date format: `YYYY-MM-DD`
+- Profile becomes complete when all required fields are filled
+
+### 6. Check Profile Completion
+**Endpoint:** `GET /profile/:userId/completion`
+
+**Response:**
+```json
+{
+  "success": true,
+  "isComplete": false,
+  "completionPercentage": 50,
+  "missingFields": ["phone", "address", "dateOfBirth"]
+}
+```
+
+## User Management
+
+### 7. Search Users
+**Endpoint:** `GET /users/search?q=searchterm&limit=10`
+
+**Example:** `GET /users/search?q=john&limit=5`
+
+**Response:**
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "id": "68dd2e50d69be892dbfc0269",
+      "name": "John Doe",
+      "email": "test@example.com",
+      "role": "Developer"
+    }
+  ]
+}
+```
+
+### 8. Get User Statistics
+**Endpoint:** `GET /users/stats`
+
+**Response:**
+```json
+{
+  "success": true,
+  "stats": {
+    "totalUsers": 1,
+    "completeProfiles": 0,
+    "incompleteProfiles": 1,
+    "roleDistribution": {
+      "Reporter": 1,
+      "Developer": 0,
+      "QA": 0
+    }
+  }
+}
+```
+
+## System Health
+
+### 9. Health Check
+**Endpoint:** `GET /health`
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-10-01T13:32:48.719Z"
+}
+```
+
+## AI Tool Testing Workflows
+
+### Complete User Registration Flow
+```bash
+# 1. Request OTP
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "newuser@example.com"}'
+
+# 2. Get OTP (AI Tool)
+curl -X GET http://localhost:3000/ai/get-otp/newuser@example.com
+
+# 3. Verify OTP (use values from previous responses)
+curl -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"sessionId": "SESSION_ID", "otp": "OTP_CODE"}'
+
+# 4. Update Profile (use user ID from verification response)
+curl -X PUT http://localhost:3000/profile/USER_ID \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Jane Smith",
+    "address": "456 Oak Ave, Town, State",
+    "dateOfBirth": "1985-03-20",
+    "role": "QA"
+  }'
+
+# 5. Verify Profile Completion
+curl -X GET http://localhost:3000/profile/USER_ID/completion
+```
+
+### Data Validation Testing
+
+**Email Validation:**
+- Valid: `user@domain.com`, `test.email+tag@example.org`
+- Invalid: `invalid-email`, `@domain.com`, `user@`
+
+**Phone Validation:**
+- Valid: `+1234567890`, `(555) 123-4567`, `555-123-4567`
+- Invalid: `123`, `invalid-phone`
+
+**Role Validation:**
+- Valid: `Reporter`, `Developer`, `QA`
+- Invalid: `Admin`, `Manager`, `User`
+
+**Date Validation:**
+- Valid: `1990-01-15`, `2000-12-31`
+- Invalid: `15-01-1990`, `invalid-date`, `2025-13-45`
+
+### Error Handling Test Cases
+
+**400 Bad Request:**
+```json
+{
+  "success": false,
+  "message": "Phone number or email is required"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+  "success": false,
+  "message": "Invalid OTP"
+}
+```
+
+## Legacy Test Cases (Original Implementation)
+
+### Phone Number Test
 ```bash
 # Step 1: AI enters phone in app UI (9876543210)
 # Step 2: Get OTP via API
@@ -26,7 +304,7 @@ curl http://localhost:3000/ai/get-otp/9876543210
 # Step 3: AI enters OTP (482736) in app → Success
 ```
 
-### 2. Email Test
+### Email Test
 ```bash
 # Step 1: AI enters email in app UI (test@example.com)
 # Step 2: Get OTP via API
@@ -38,15 +316,60 @@ curl http://localhost:3000/ai/get-otp/test@example.com
 # Step 3: AI enters OTP (636853) in app → Success
 ```
 
-## AI Tool Configuration
+## Future Endpoints (Phases 2-5)
 
-- **Base URL**: `http://localhost:3000` (or deployed URL)
-- **Endpoint**: `/ai/get-otp/{identifier}`
-- **Method**: GET
-- **Response Field**: `otp`
+### Phase 2: Enhanced Onboarding
+- `POST /profile/setup` - Complete profile setup flow
+- `GET /profile/onboarding-status` - Check onboarding progress
 
-## Test Flow
-1. AI enters identifier in app
-2. AI calls API to get OTP
-3. AI enters OTP in app
-4. Validate login success
+### Phase 3: Bug Reporting
+- `POST /bugs` - Create bug report
+- `GET /bugs` - List bug reports
+- `GET /bugs/:bugId` - Get bug details
+- `PUT /bugs/:bugId` - Update bug report
+- `POST /bugs/:bugId/comments` - Add comment
+
+### Phase 4: Dashboard
+- `GET /dashboard/stats` - Real-time dashboard statistics
+- `GET /dashboard/recent-bugs` - Recent bug reports
+- `GET /dashboard/user-activity` - User activity feed
+
+### Phase 5: AI Validation
+- `POST /ai/validate-bug` - AI bug validation
+- `GET /ai/validation-status/:bugId` - Check validation status
+- `POST /ai/test-scenario` - Execute test scenarios
+
+## Current Implementation Status
+
+✅ **Phase 1 Complete:**
+- MongoDB connection and schemas
+- User authentication with OTP
+- Profile management
+- User search and statistics
+- File upload middleware (ready for bug attachments)
+
+🔄 **Next: Phase 2**
+- Enhanced onboarding flow
+- Profile completion wizard
+- Role-based UI components
+
+## Testing Notes for AI Tool
+
+1. **Session Management:** OTP sessions expire after 5 minutes
+2. **Rate Limiting:** Maximum 3 OTP attempts per session
+3. **Data Persistence:** All user data is stored in MongoDB Atlas
+4. **Unique Constraints:** Email and phone must be unique across users
+5. **Profile Completion:** Requires name, email/phone, address, dateOfBirth, role
+6. **AI Endpoint:** `/ai/get-otp/:identifier` is specifically for automated testing
+
+## Environment Configuration
+
+```env
+MONGODB_URI=mongodb+srv://...
+NODE_ENV=development
+PORT=3000
+UPLOAD_DIR=uploads
+MAX_FILE_SIZE=10MB
+```
+
+**Server Status:** ✅ Running on http://localhost:3000 with MongoDB Atlas connection

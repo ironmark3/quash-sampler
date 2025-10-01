@@ -26,7 +26,8 @@ import com.g.quash_sampler.ui.theme.SurfaceVariant
 @Preview
 fun OtpScreen(
     sessionId: String,
-    onNavigateToHome: () -> Unit,
+    onNavigateToHome: (String) -> Unit,
+    onNavigateToOnboarding: (String) -> Unit = {},
     viewModel: OtpViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -79,8 +80,12 @@ fun OtpScreen(
 
         Button(
             onClick = {
-                viewModel.verifyOtp {
-                    onNavigateToHome()
+                viewModel.verifyOtp { user ->
+                    if (user != null && user.isProfileComplete) {
+                        onNavigateToHome(user.id)
+                    } else if (user != null) {
+                        onNavigateToOnboarding(user.id)
+                    }
                 }
             },
             modifier = Modifier

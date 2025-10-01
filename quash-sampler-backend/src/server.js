@@ -1,5 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const connectDB = require('./config/database');
 const routes = require('./routes');
 
 const app = express();
@@ -37,8 +40,13 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  // Connect to database
+  await connectDB();
   console.log('\n🚀 Quash Sampler Backend Server');
   console.log('================================');
   console.log(`✅ Server running on http://localhost:${PORT}`);
@@ -46,6 +54,11 @@ app.listen(PORT, () => {
   console.log(`\n📝 Available endpoints:`);
   console.log(`   POST /auth/login - Request OTP`);
   console.log(`   POST /auth/verify-otp - Verify OTP`);
+  console.log(`   GET  /profile/:userId - Get user profile`);
+  console.log(`   PUT  /profile/:userId - Update user profile`);
+  console.log(`   GET  /profile/:userId/completion - Check profile completion`);
+  console.log(`   GET  /users/search - Search users`);
+  console.log(`   GET  /users/stats - Get user statistics`);
   console.log(`   GET  /health - Health check`);
   console.log(`   GET  /ai/get-otp/:identifier - Get OTP by phone/email (AI tool)`);
   if (NODE_ENV !== 'production') {

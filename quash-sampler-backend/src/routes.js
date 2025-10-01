@@ -1,5 +1,6 @@
 const express = require('express');
 const { generateOTP, generateSessionId, storeOTP, verifyOTP, getOTPForTesting, getOTPByIdentifier } = require('./otpService');
+const UserService = require('./services/userService');
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ router.post('/auth/login', (req, res) => {
 });
 
 // POST /auth/verify-otp - Verify OTP
-router.post('/auth/verify-otp', (req, res) => {
+router.post('/auth/verify-otp', async (req, res) => {
   const { sessionId, otp } = req.body;
 
   if (!sessionId || !otp) {
@@ -72,7 +73,7 @@ router.post('/auth/verify-otp', (req, res) => {
     });
   }
 
-  const result = verifyOTP(sessionId, otp);
+  const result = await verifyOTP(sessionId, otp);
 
   if (result.success) {
     // Generate a token (in production, use JWT)
@@ -120,6 +121,184 @@ router.get('/ai/get-otp/:identifier', (req, res) => {
   } else {
     res.status(404).json({
       message: 'No OTP found for this phone/email. Make sure to request OTP first.'
+    });
+  }
+});
+
+// GET /profile/:userId - Get user profile
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await UserService.getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        dateOfBirth: user.dateOfBirth,
+        role: user.role,
+        isProfileComplete: user.isProfileComplete,
+        profileCompletionPercentage: user.profileCompletionPercentage
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile'
+    });
+  }
+});
+
+// PUT /profile/:userId - Update user profile
+router.put('/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, address, dateOfBirth, role } = req.body;
+
+    // Validate required fields
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required'
+      });
+    }
+
+    if (role && !['Reporter', 'Developer', 'QA'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be Reporter, Developer, or QA'
+      });
+    }
+
+    const profileData = {
+      name: name.trim(),
+      address: address ? address.trim() : undefined,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      role: role || undefined
+    };
+
+    // Remove undefined fields
+    Object.keys(profileData).forEach(key => {
+      if (profileData[key] === undefined) {
+        delete profileData[key];
+      }
+    });
+
+    const updatedUser = await UserService.updateUserProfile(userId, profileData);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser._id.toString(),
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        dateOfBirth: updatedUser.dateOfBirth,
+        role: updatedUser.role,
+        isProfileComplete: updatedUser.isProfileComplete,
+        profileCompletionPercentage: updatedUser.profileCompletionPercentage
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile'
+    });
+  }
+});
+
+// GET /profile/:userId/completion - Check profile completion status
+router.get('/profile/:userId/completion', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const completionData = await UserService.checkProfileCompletion(userId);
+
+    res.json({
+      success: true,
+      ...completionData
+    });
+  } catch (error) {
+    console.error('Error checking profile completion:', error);
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check profile completion'
+    });
+  }
+});
+
+// GET /users/search - Search users by name or email
+router.get('/users/search', async (req, res) => {
+  try {
+    const { q, limit } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    const users = await UserService.searchUsers(q.trim(), limit ? parseInt(limit) : 10);
+
+    res.json({
+      success: true,
+      users: users.map(user => ({
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }))
+    });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search users'
+    });
+  }
+});
+
+// GET /users/stats - Get user statistics
+router.get('/users/stats', async (req, res) => {
+  try {
+    const stats = await UserService.getUserStats();
+
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user statistics'
     });
   }
 });

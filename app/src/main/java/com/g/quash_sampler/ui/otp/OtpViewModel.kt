@@ -15,7 +15,8 @@ data class OtpUiState(
     val otp: String = "",
     val sessionId: String = "",
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val user: com.g.quash_sampler.domain.model.User? = null
 )
 
 @HiltViewModel
@@ -40,7 +41,7 @@ class OtpViewModel @Inject constructor(
         _uiState.update { it.copy(otp = value, error = null) }
     }
 
-    fun verifyOtp(onSuccess: () -> Unit) {
+    fun verifyOtp(onSuccess: (com.g.quash_sampler.domain.model.User?) -> Unit) {
         val currentState = _uiState.value
         if (currentState.sessionId.isBlank()) {
             _uiState.update { it.copy(error = "Session expired. Please login again.") }
@@ -59,8 +60,15 @@ class OtpViewModel @Inject constructor(
                 .onSuccess { response ->
                     if (response.success && response.token != null) {
                         // TODO: Save token to shared preferences or datastore
-                        _uiState.update { it.copy(isLoading = false, error = null, otp = "") }
-                        onSuccess()
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = null,
+                                otp = "",
+                                user = response.user
+                            )
+                        }
+                        onSuccess(response.user)
                     } else {
                         _uiState.update {
                             it.copy(

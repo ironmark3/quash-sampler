@@ -2,6 +2,7 @@ package com.g.quash_sampler.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -11,9 +12,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,12 +24,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.g.quash_sampler.ui.theme.Success
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Preview
-fun HomeScreen() {
+fun HomeScreen(
+    userId: String,
+    onNavigateToProfile: (String) -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Load user profile when the screen is first created
+    LaunchedEffect(userId) {
+        viewModel.loadUserProfile(userId)
+    }
+
+    // Show error handling
+    uiState.error?.let { errorMessage ->
+        LaunchedEffect(errorMessage) {
+            viewModel.clearError()
+        }
+    }
+
+    val user = uiState.user
+
+    // Show loading state if user data is being fetched
+    if (uiState.isLoading && user == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -41,7 +74,16 @@ fun HomeScreen() {
                                 .size(32.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
-                        )
+                                .clickable { onNavigateToProfile(user?.id ?: userId) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = (user?.name ?: "User").take(2).uppercase(),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                         Column {
                             Text(
                                 "Welcome back",
@@ -49,7 +91,7 @@ fun HomeScreen() {
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                             )
                             Text(
-                                "John Doe",
+                                user?.name ?: "User",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -71,6 +113,16 @@ fun HomeScreen() {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Profile Completion Notice
+            if (user != null && !user.isProfileComplete) {
+                item {
+                    ProfileCompletionCard(
+                        completionPercentage = user.profileCompletionPercentage,
+                        onNavigateToProfile = { onNavigateToProfile(user.id) }
+                    )
+                }
+            }
+
             // Stats Cards
             item {
                 Row(
@@ -242,4 +294,69 @@ fun ActivityItem(
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
         )
     }
+}
+
+@Composable
+fun ProfileCompletionCard(
+    completionPercentage: Int,
+    onNavigateToProfile: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onNavigateToProfile() }
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Complete your profile",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${completionPercentage}% complete - Add missing information",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { completionPercentage / 100f },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                )
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    HomeScreen(userId = "preview-user-id")
 }

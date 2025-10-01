@@ -1,3 +1,5 @@
+const UserService = require('./services/userService');
+
 // In-memory storage for OTPs (use Redis in production)
 const otpStore = new Map();
 // Reverse mapping: identifier -> sessionId for AI tool
@@ -46,7 +48,7 @@ function storeOTP(sessionId, otp, identifier) {
 }
 
 // Verify OTP
-function verifyOTP(sessionId, otp) {
+async function verifyOTP(sessionId, otp) {
   const data = otpStore.get(sessionId);
 
   if (!data) {
@@ -67,16 +69,30 @@ function verifyOTP(sessionId, otp) {
 
   if (data.otp === otp) {
     otpStore.delete(sessionId);
-    return {
-      success: true,
-      message: 'OTP verified successfully',
-      user: {
-        id: `user_${Date.now()}`,
-        name: 'Test User',
-        email: data.identifier.includes('@') ? data.identifier : null,
-        phone: data.identifier.includes('@') ? null : data.identifier
-      }
-    };
+
+    try {
+      // Find or create user in database
+      const user = await UserService.findOrCreateUser(data.identifier);
+
+      return {
+        success: true,
+        message: 'OTP verified successfully',
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          isProfileComplete: user.isProfileComplete
+        }
+      };
+    } catch (error) {
+      console.error('Error creating/finding user:', error);
+      return {
+        success: false,
+        message: 'User creation failed. Please try again.'
+      };
+    }
   }
 
   return { success: false, message: 'Invalid OTP' };
