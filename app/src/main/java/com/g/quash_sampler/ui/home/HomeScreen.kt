@@ -17,7 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -119,6 +119,7 @@ fun HomeScreen(viewModel: ScenarioViewModel = hiltViewModel()) {
     )
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeContent(
     uiState: ScenarioUiState,
@@ -246,7 +247,7 @@ private fun ScenarioLogCard(log: ScenarioLog) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(
-                    imageVector = if (log.isSuccessful) Icons.Filled.CheckCircle else Icons.Filled.Error,
+                    imageVector = if (log.isSuccessful) Icons.Filled.CheckCircle else Icons.Filled.Close,
                     contentDescription = null,
                     tint = if (log.isSuccessful) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                 )
