@@ -1125,3 +1125,460 @@ Link: <http://localhost:3000/pagination/link-header?page=1&limit=5>; rel="first"
    curl -X POST -H "Authorization: Bearer <token>" \
      http://localhost:3000/auth/logout
    ```
+
+---
+
+## 11. Edge Cases & Special Scenarios
+
+### 1. Random Response
+
+**Endpoint:** `GET /api/random/response`
+
+**Description:** Returns a random HTTP status code (200, 201, 400, 404, 500, 503) with each request.
+
+**Request:**
+```bash
+curl http://localhost:3000/api/random/response
+```
+
+**Response (varies):**
+```json
+{
+  "success": true,
+  "message": "Randomly generated 200 response",
+  "statusCode": 200,
+  "timestamp": "2025-10-08T15:41:22.771Z",
+  "note": "Each request returns a different random status code"
+}
+```
+
+**Headers:**
+- `X-Random-Status`: The randomly selected status code
+
+---
+
+### 2. Random Data
+
+**Endpoint:** `GET /api/random/data`
+
+**Description:** Generates random data structures (object, array, or nested) with random content.
+
+**Request:**
+```bash
+curl http://localhost:3000/api/random/data
+```
+
+**Response (varies):**
+```json
+{
+  "success": true,
+  "dataType": "object",
+  "itemCount": 1,
+  "data": {
+    "level1": {
+      "data": "ugplinzre",
+      "level2": {
+        "data": "rtq2lwkki",
+        "level3": {
+          "value": 747
+        }
+      }
+    }
+  },
+  "generatedAt": "2025-10-08T15:41:26.344Z"
+}
+```
+
+---
+
+### 3. Flaky Endpoint
+
+**Endpoint:** `GET /api/flaky?failure_rate=0.3`
+
+**Description:** Simulates intermittent failures based on the specified failure rate (0.0-1.0).
+
+**Query Parameters:**
+- `failure_rate` (optional): Probability of failure (default: 0.3, range: 0.0-1.0)
+
+**Success Response (200):**
+```bash
+curl "http://localhost:3000/api/flaky?failure_rate=0.5"
+```
+
+```json
+{
+  "success": true,
+  "message": "Request succeeded this time",
+  "failureRate": 0.5,
+  "timestamp": "2025-10-08T15:41:29.048Z"
+}
+```
+
+**Failure Response (500):**
+```json
+{
+  "success": false,
+  "message": "Simulated intermittent failure",
+  "code": "FLAKY_ERROR",
+  "failureRate": 0.5,
+  "timestamp": "2025-10-08T15:41:29.048Z"
+}
+```
+
+**Headers:**
+- `X-Flaky-Result`: success or failure
+- `X-Failure-Rate`: Configured failure rate
+
+---
+
+### 4. Large Response
+
+**Endpoint:** `GET /api/large-response?size=1mb`
+
+**Description:** Generates a response of the specified size for testing large payloads.
+
+**Query Parameters:**
+- `size` (optional): Response size (examples: 1kb, 10kb, 100kb, 1mb, 10mb) (default: 1kb)
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/large-response?size=5kb"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Large response generated",
+  "requestedSize": "5kb",
+  "targetBytes": 5120,
+  "itemsGenerated": 20,
+  "items": [
+    {
+      "id": 0,
+      "name": "Item 1",
+      "description": "This is a sample item with some text to fill up space. Item number 1.",
+      "timestamp": "2025-10-08T15:41:32.123Z",
+      "data": "xxxxxxxxxxxx..."
+    }
+  ]
+}
+```
+
+**Headers:**
+- `X-Generated-Size`: Actual byte count of response
+- `Content-Length`: Size of response
+
+---
+
+### 5. Deeply Nested JSON
+
+**Endpoint:** `GET /api/nested-deep?depth=10`
+
+**Description:** Generates deeply nested JSON structure (10+ levels) for testing JSON parsing.
+
+**Query Parameters:**
+- `depth` (optional): Nesting depth (default: 10, max: 50)
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/nested-deep?depth=15"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Generated deeply nested JSON with 15 levels",
+  "depth": 15,
+  "nested": {
+    "level": 1,
+    "message": "Level 1 of 15",
+    "data": {
+      "level": 2,
+      "message": "Level 2 of 15",
+      "data": {
+        "level": 3,
+        "message": "Level 3 of 15",
+        "data": "..."
+      }
+    }
+  }
+}
+```
+
+**Headers:**
+- `X-Nesting-Depth`: Configured depth level
+
+---
+
+### 6. Empty Array
+
+**Endpoint:** `GET /api/empty-array`
+
+**Description:** Returns an empty array `[]` for testing empty response handling.
+
+**Request:**
+```bash
+curl http://localhost:3000/api/empty-array
+```
+
+**Response:**
+```json
+[]
+```
+
+**Headers:**
+- `X-Result-Count`: 0
+
+---
+
+### 7. Null Response
+
+**Endpoint:** `GET /api/null-response`
+
+**Description:** Returns `null` as a valid JSON response for testing null handling.
+
+**Request:**
+```bash
+curl http://localhost:3000/api/null-response
+```
+
+**Response:**
+```json
+null
+```
+
+**Headers:**
+- `X-Response-Type`: null
+
+---
+
+### 8. Unicode Data
+
+**Endpoint:** `GET /api/unicode`
+
+**Description:** Returns data with Unicode characters, emojis, and international text.
+
+**Request:**
+```bash
+curl http://localhost:3000/api/unicode
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Unicode and emoji data 🚀",
+  "emojis": {
+    "celebration": "🎉",
+    "rocket": "🚀",
+    "light": "💡",
+    "lightning": "⚡",
+    "star": "🌟",
+    "heart": "❤️",
+    "check": "✅",
+    "fire": "🔥"
+  },
+  "international": {
+    "chinese": "你好世界",
+    "arabic": "مرحبا بالعالم",
+    "hindi": "नमस्ते दुनिया",
+    "japanese": "こんにちは世界",
+    "korean": "안녕하세요 세계",
+    "russian": "Привет мир"
+  },
+  "mathematical": {
+    "summation": "∑",
+    "integral": "∫",
+    "squareRoot": "√",
+    "pi": "π",
+    "infinity": "∞",
+    "delta": "Δ",
+    "lambda": "λ"
+  },
+  "symbols": {
+    "copyright": "©",
+    "registered": "®",
+    "trademark": "™",
+    "currency": "€£¥₹",
+    "arrows": "←→↑↓"
+  }
+}
+```
+
+---
+
+### 9. Special Characters
+
+**Endpoint:** `GET /api/special-chars`
+
+**Description:** Returns data with special characters (quotes, backslashes, newlines, HTML entities).
+
+**Request:**
+```bash
+curl http://localhost:3000/api/special-chars
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Response with special characters",
+  "examples": {
+    "quotes": {
+      "single": "It's a beautiful day",
+      "double": "She said \"Hello\"",
+      "backtick": "Template `literal` example"
+    },
+    "backslashes": {
+      "path": "C:\\Users\\Documents\\file.txt",
+      "regex": "\\d+\\s+\\w+"
+    },
+    "newlines": {
+      "multiline": "Line 1\nLine 2\nLine 3",
+      "withTabs": "Column1\tColumn2\tColumn3"
+    },
+    "html": {
+      "escaped": "&lt;div&gt;Content&lt;/div&gt;",
+      "entities": "&amp; &quot; &apos; &lt; &gt;"
+    },
+    "control": {
+      "carriageReturn": "Text with\rcarriage return",
+      "formFeed": "Text with\fform feed",
+      "verticalTab": "Text with\vvertical tab"
+    },
+    "special": {
+      "mixed": "Mix'd \"special\" chars: <tag> & symbol's!"
+    }
+  }
+}
+```
+
+---
+
+## 12. CORS Testing
+
+### 1. Simple CORS
+
+**Endpoint:** `OPTIONS /api/cors/simple` or `GET /api/cors/simple`
+
+**Description:** Basic CORS configuration with wildcard origin.
+
+**OPTIONS Request (Preflight):**
+```bash
+curl -X OPTIONS http://localhost:3000/api/cors/simple -I
+```
+
+**Response Headers:**
+```
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+```
+
+**GET Request:**
+```bash
+curl http://localhost:3000/api/cors/simple
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Simple CORS enabled",
+  "allowedOrigins": "*",
+  "allowedMethods": ["GET", "POST", "OPTIONS"]
+}
+```
+
+---
+
+### 2. CORS with Credentials
+
+**Endpoint:** `OPTIONS /api/cors/credentials` or `GET /api/cors/credentials`
+
+**Description:** CORS configuration that allows credentials (cookies, authentication).
+
+**OPTIONS Request (Preflight):**
+```bash
+curl -X OPTIONS -H "Origin: http://example.com" \
+  http://localhost:3000/api/cors/credentials -I
+```
+
+**Response Headers:**
+```
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: http://example.com
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Max-Age: 86400
+```
+
+**GET Request:**
+```bash
+curl -H "Origin: http://example.com" \
+  http://localhost:3000/api/cors/credentials
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "CORS with credentials enabled",
+  "origin": "http://example.com",
+  "credentialsAllowed": true,
+  "note": "This endpoint allows cookies and authentication headers"
+}
+```
+
+---
+
+### 3. CORS with Custom Headers
+
+**Endpoint:** `OPTIONS /api/cors/custom-headers` or `GET /api/cors/custom-headers`
+
+**Description:** CORS configuration with custom allowed and exposed headers.
+
+**OPTIONS Request (Preflight):**
+```bash
+curl -X OPTIONS http://localhost:3000/api/cors/custom-headers -I
+```
+
+**Response Headers:**
+```
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Headers: X-Custom-Header, X-Api-Key, X-Request-ID, Content-Type
+Access-Control-Expose-Headers: X-Total-Count, X-Page-Number
+Access-Control-Max-Age: 3600
+```
+
+**GET Request:**
+```bash
+curl http://localhost:3000/api/cors/custom-headers -I | grep -i "x-total"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "CORS with custom headers enabled",
+  "allowedHeaders": ["X-Custom-Header", "X-Api-Key", "X-Request-ID", "Content-Type"],
+  "exposedHeaders": ["X-Total-Count", "X-Page-Number"],
+  "data": {
+    "totalCount": 100,
+    "pageNumber": 1
+  }
+}
+```
+
+**Response Headers:**
+```
+X-Total-Count: 100
+X-Page-Number: 1
+Access-Control-Expose-Headers: X-Total-Count, X-Page-Number
+```

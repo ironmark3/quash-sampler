@@ -674,4 +674,383 @@ router.get('/pagination/link-header', (req, res) => {
   });
 });
 
+// ==================== Edge Cases & Special Scenarios ====================
+
+// Helper function to get random status code
+function getRandomStatusCode() {
+  const statuses = [200, 201, 400, 404, 500, 503];
+  return statuses[Math.floor(Math.random() * statuses.length)];
+}
+
+// Helper function to generate random data
+function generateRandomData() {
+  const types = ['object', 'array', 'nested'];
+  const type = types[Math.floor(Math.random() * types.length)];
+
+  if (type === 'object') {
+    return {
+      id: Math.floor(Math.random() * 1000),
+      name: `Item_${Math.random().toString(36).substr(2, 9)}`,
+      value: Math.random() * 100,
+      active: Math.random() > 0.5,
+      timestamp: new Date().toISOString()
+    };
+  } else if (type === 'array') {
+    const length = Math.floor(Math.random() * 20) + 1;
+    return Array(length).fill(null).map((_, i) => ({
+      index: i,
+      value: Math.random().toString(36).substr(2, 9)
+    }));
+  } else {
+    return {
+      level1: {
+        data: Math.random().toString(36).substr(2, 9),
+        level2: {
+          data: Math.random().toString(36).substr(2, 9),
+          level3: {
+            value: Math.floor(Math.random() * 1000)
+          }
+        }
+      }
+    };
+  }
+}
+
+// Helper function to parse size string to bytes
+function parseSizeToBytes(sizeStr) {
+  const units = {
+    'b': 1,
+    'kb': 1024,
+    'mb': 1024 * 1024,
+    'gb': 1024 * 1024 * 1024
+  };
+
+  const match = sizeStr.toLowerCase().match(/^(\d+(?:\.\d+)?)(b|kb|mb|gb)$/);
+  if (!match) return 1024; // Default 1KB
+
+  const value = parseFloat(match[1]);
+  const unit = match[2];
+  return Math.floor(value * units[unit]);
+}
+
+// Helper function to generate nested object
+function generateNestedObject(depth, currentDepth = 1) {
+  if (currentDepth >= depth) {
+    return {
+      level: currentDepth,
+      value: `Deepest level reached`,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  return {
+    level: currentDepth,
+    message: `Level ${currentDepth} of ${depth}`,
+    data: generateNestedObject(depth, currentDepth + 1)
+  };
+}
+
+// GET /api/random/response - Random status code
+router.get('/random/response', (req, res) => {
+  const randomStatus = getRandomStatusCode();
+
+  res.status(randomStatus)
+    .set('X-Random-Status', randomStatus.toString())
+    .json({
+      success: randomStatus < 400,
+      message: `Randomly generated ${randomStatus} response`,
+      statusCode: randomStatus,
+      timestamp: new Date().toISOString(),
+      note: 'Each request returns a different random status code'
+    });
+});
+
+// GET /api/random/data - Random data generation
+router.get('/random/data', (req, res) => {
+  const data = generateRandomData();
+  const dataType = Array.isArray(data) ? 'array' : typeof data === 'object' ? 'object' : typeof data;
+
+  res.json({
+    success: true,
+    dataType: dataType,
+    itemCount: Array.isArray(data) ? data.length : Object.keys(data).length,
+    data: data,
+    generatedAt: new Date().toISOString()
+  });
+});
+
+// GET /api/flaky - Intermittent failures
+router.get('/flaky', (req, res) => {
+  const failureRate = Math.min(Math.max(parseFloat(req.query.failure_rate) || 0.3, 0), 1);
+  const shouldFail = Math.random() < failureRate;
+
+  if (shouldFail) {
+    res.status(500)
+      .set('X-Flaky-Result', 'failure')
+      .set('X-Failure-Rate', failureRate.toString())
+      .json({
+        success: false,
+        message: 'Simulated intermittent failure',
+        code: 'FLAKY_ERROR',
+        failureRate: failureRate,
+        timestamp: new Date().toISOString()
+      });
+  } else {
+    res.status(200)
+      .set('X-Flaky-Result', 'success')
+      .set('X-Failure-Rate', failureRate.toString())
+      .json({
+        success: true,
+        message: 'Request succeeded this time',
+        failureRate: failureRate,
+        timestamp: new Date().toISOString()
+      });
+  }
+});
+
+// GET /api/large-response - Configurable response size
+router.get('/large-response', (req, res) => {
+  const sizeParam = req.query.size || '1kb';
+  const targetBytes = parseSizeToBytes(sizeParam);
+
+  // Generate data to fill the target size
+  const items = [];
+  let currentSize = 0;
+  let index = 0;
+
+  const baseJson = JSON.stringify({
+    success: true,
+    message: 'Large response generated',
+    requestedSize: sizeParam,
+    items: []
+  });
+  currentSize = baseJson.length;
+
+  while (currentSize < targetBytes) {
+    const item = {
+      id: index++,
+      name: `Item ${index}`,
+      description: `This is a sample item with some text to fill up space. Item number ${index}.`,
+      timestamp: new Date().toISOString(),
+      data: 'x'.repeat(100) // Filler data
+    };
+    items.push(item);
+    currentSize += JSON.stringify(item).length;
+  }
+
+  const response = {
+    success: true,
+    message: 'Large response generated',
+    requestedSize: sizeParam,
+    targetBytes: targetBytes,
+    itemsGenerated: items.length,
+    items: items
+  };
+
+  const actualSize = JSON.stringify(response).length;
+
+  res.set('X-Generated-Size', actualSize.toString())
+    .set('Content-Length', actualSize.toString())
+    .json(response);
+});
+
+// GET /api/nested-deep - Deeply nested JSON
+router.get('/nested-deep', (req, res) => {
+  const depth = parseInt(req.query.depth) || 10;
+  const maxDepth = Math.min(depth, 50); // Limit to 50 levels max
+
+  const nestedData = generateNestedObject(maxDepth);
+
+  res.set('X-Nesting-Depth', maxDepth.toString())
+    .json({
+      success: true,
+      message: `Generated deeply nested JSON with ${maxDepth} levels`,
+      depth: maxDepth,
+      nested: nestedData
+    });
+});
+
+// GET /api/empty-array - Empty array response
+router.get('/empty-array', (req, res) => {
+  res.set('X-Result-Count', '0')
+    .json([]);
+});
+
+// GET /api/null-response - Null response
+router.get('/null-response', (req, res) => {
+  res.set('X-Response-Type', 'null')
+    .json(null);
+});
+
+// GET /api/unicode - Unicode/emoji data
+router.get('/unicode', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Unicode and emoji data 🚀',
+    emojis: {
+      celebration: '🎉',
+      rocket: '🚀',
+      light: '💡',
+      lightning: '⚡',
+      star: '🌟',
+      heart: '❤️',
+      check: '✅',
+      fire: '🔥'
+    },
+    international: {
+      chinese: '你好世界',
+      arabic: 'مرحبا بالعالم',
+      hindi: 'नमस्ते दुनिया',
+      japanese: 'こんにちは世界',
+      korean: '안녕하세요 세계',
+      russian: 'Привет мир'
+    },
+    mathematical: {
+      summation: '∑',
+      integral: '∫',
+      squareRoot: '√',
+      pi: 'π',
+      infinity: '∞',
+      delta: 'Δ',
+      lambda: 'λ'
+    },
+    symbols: {
+      copyright: '©',
+      registered: '®',
+      trademark: '™',
+      currency: '€£¥₹',
+      arrows: '←→↑↓'
+    }
+  });
+});
+
+// GET /api/special-chars - Special characters in response
+router.get('/special-chars', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Response with special characters',
+    examples: {
+      quotes: {
+        single: "It's a beautiful day",
+        double: 'She said "Hello"',
+        backtick: 'Template `literal` example'
+      },
+      backslashes: {
+        path: 'C:\\Users\\Documents\\file.txt',
+        regex: '\\d+\\s+\\w+'
+      },
+      newlines: {
+        multiline: 'Line 1\nLine 2\nLine 3',
+        withTabs: 'Column1\tColumn2\tColumn3'
+      },
+      html: {
+        escaped: '&lt;div&gt;Content&lt;/div&gt;',
+        entities: '&amp; &quot; &apos; &lt; &gt;'
+      },
+      control: {
+        carriageReturn: 'Text with\rcarriage return',
+        formFeed: 'Text with\fform feed',
+        verticalTab: 'Text with\vvertical tab'
+      },
+      special: {
+        mixed: "Mix'd \"special\" chars: <tag> & symbol's!"
+      }
+    }
+  });
+});
+
+// ==================== CORS Testing ====================
+
+// Helper function to set CORS headers
+function setCorsHeaders(res, type, origin) {
+  if (type === 'simple') {
+    res.set({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+  } else if (type === 'credentials') {
+    res.set({
+      'Access-Control-Allow-Origin': origin || 'http://localhost:3000',
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    });
+  } else if (type === 'custom-headers') {
+    res.set({
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Custom-Header, X-Api-Key, X-Request-ID, Content-Type',
+      'Access-Control-Expose-Headers': 'X-Total-Count, X-Page-Number',
+      'Access-Control-Max-Age': '3600'
+    });
+  }
+}
+
+// OPTIONS /api/cors/simple - Simple CORS
+router.options('/cors/simple', (req, res) => {
+  setCorsHeaders(res, 'simple');
+  res.status(204).send();
+});
+
+// GET /api/cors/simple - Simple CORS (actual request)
+router.get('/cors/simple', (req, res) => {
+  setCorsHeaders(res, 'simple');
+  res.json({
+    success: true,
+    message: 'Simple CORS enabled',
+    allowedOrigins: '*',
+    allowedMethods: ['GET', 'POST', 'OPTIONS']
+  });
+});
+
+// OPTIONS /api/cors/credentials - CORS with credentials
+router.options('/cors/credentials', (req, res) => {
+  const origin = req.headers.origin;
+  setCorsHeaders(res, 'credentials', origin);
+  res.status(204).send();
+});
+
+// GET /api/cors/credentials - CORS with credentials (actual request)
+router.get('/cors/credentials', (req, res) => {
+  const origin = req.headers.origin;
+  setCorsHeaders(res, 'credentials', origin);
+  res.json({
+    success: true,
+    message: 'CORS with credentials enabled',
+    origin: origin || 'http://localhost:3000',
+    credentialsAllowed: true,
+    note: 'This endpoint allows cookies and authentication headers'
+  });
+});
+
+// OPTIONS /api/cors/custom-headers - CORS with custom headers
+router.options('/cors/custom-headers', (req, res) => {
+  setCorsHeaders(res, 'custom-headers');
+  res.status(204).send();
+});
+
+// GET /api/cors/custom-headers - CORS with custom headers (actual request)
+router.get('/cors/custom-headers', (req, res) => {
+  setCorsHeaders(res, 'custom-headers');
+
+  // Set some exposed headers
+  res.set({
+    'X-Total-Count': '100',
+    'X-Page-Number': '1'
+  });
+
+  res.json({
+    success: true,
+    message: 'CORS with custom headers enabled',
+    allowedHeaders: ['X-Custom-Header', 'X-Api-Key', 'X-Request-ID', 'Content-Type'],
+    exposedHeaders: ['X-Total-Count', 'X-Page-Number'],
+    data: {
+      totalCount: 100,
+      pageNumber: 1
+    }
+  });
+});
+
 module.exports = router;
