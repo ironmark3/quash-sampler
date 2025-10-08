@@ -74,6 +74,38 @@ function revokeToken(token) {
   return activeTokens.delete(token);
 }
 
+// Generate token directly from email (for testing/API purposes)
+function generateTokenFromEmail(email) {
+  const user = {
+    id: `user_${Date.now()}`,
+    email: email,
+    name: email.split('@')[0],
+  };
+
+  return generateToken(user);
+}
+
+// Decode token and get claims (without verification)
+function getTokenClaims(token) {
+  try {
+    // Decode without verifying (just parse the JWT)
+    const decoded = jwt.decode(token, { complete: true });
+
+    if (!decoded) {
+      return { success: false, error: 'Invalid token format' };
+    }
+
+    return {
+      success: true,
+      header: decoded.header,
+      payload: decoded.payload,
+      signature: decoded.signature
+    };
+  } catch (error) {
+    return { success: false, error: 'Failed to decode token' };
+  }
+}
+
 // Clear expired tokens periodically (cleanup)
 setInterval(() => {
   const tokensToRemove = [];
@@ -98,5 +130,7 @@ setInterval(() => {
 module.exports = {
   generateToken,
   verifyToken,
-  revokeToken
+  revokeToken,
+  generateTokenFromEmail,
+  getTokenClaims
 };

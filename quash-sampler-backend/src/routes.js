@@ -1,6 +1,6 @@
 const express = require('express');
 const { generateOTP, generateSessionId, storeOTP, verifyOTP } = require('./otpService');
-const { generateToken, revokeToken } = require('./tokenService');
+const { generateToken, revokeToken, generateTokenFromEmail, getTokenClaims } = require('./tokenService');
 const { authenticate } = require('./authMiddleware');
 const scenarioRoutes = require('./scenarioRoutes');
 
@@ -118,6 +118,65 @@ router.get('/auth/me', authenticate, (req, res) => {
   res.json({
     success: true,
     user: req.user
+  });
+});
+
+// POST /auth/generate-token - Generate JWT token from email
+router.post('/auth/generate-token', (req, res) => {
+  const { email } = req.body;
+
+  if (!email || email.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required'
+    });
+  }
+
+  const trimmedEmail = email.trim();
+
+  // Validate email format
+  if (!isValidEmail(trimmedEmail)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid email format'
+    });
+  }
+
+  // Generate token for the email
+  const token = generateTokenFromEmail(trimmedEmail);
+
+  console.log(`🔑 Generated token for: ${trimmedEmail}`);
+
+  res.json({
+    success: true,
+    message: 'Token generated successfully',
+    email: trimmedEmail,
+    token
+  });
+});
+
+// GET /auth/token-claims - Get JWT token claims
+router.get('/auth/token-claims', authenticate, (req, res) => {
+  const { token } = req;
+
+  // Get the decoded claims
+  const result = getTokenClaims(token);
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.error
+    });
+  }
+
+  console.log(`🔍 Decoded token claims for: ${req.user.identifier}`);
+
+  res.json({
+    success: true,
+    claims: {
+      header: result.header,
+      payload: result.payload
+    }
   });
 });
 
