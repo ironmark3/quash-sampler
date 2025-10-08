@@ -1,5 +1,7 @@
 const express = require('express');
 const { generateOTP, generateSessionId, storeOTP, verifyOTP } = require('./otpService');
+const { generateToken, revokeToken } = require('./tokenService');
+const { authenticate } = require('./authMiddleware');
 const scenarioRoutes = require('./scenarioRoutes');
 
 const router = express.Router();
@@ -78,8 +80,10 @@ router.post('/auth/verify-otp', (req, res) => {
   const result = verifyOTP(sessionId, otp);
 
   if (result.success) {
-    // Generate a token (in production, use JWT)
-    const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Generate JWT token
+    const token = generateToken(result.user);
+
+    console.log(`✅ User authenticated: ${result.user.email || result.user.phone}`);
 
     res.json({
       success: true,
@@ -94,6 +98,28 @@ router.post('/auth/verify-otp', (req, res) => {
 
 // Scenario routes for testing various responses
 router.use('/api', scenarioRoutes);
+
+// POST /auth/logout - Logout (revoke token)
+router.post('/auth/logout', authenticate, (req, res) => {
+  const { token } = req;
+
+  revokeToken(token);
+
+  console.log(`🔒 User logged out: ${req.user.identifier}`);
+
+  res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+// GET /auth/me - Get current user info (protected)
+router.get('/auth/me', authenticate, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
+});
 
 // Health check
 router.get('/health', (req, res) => {
