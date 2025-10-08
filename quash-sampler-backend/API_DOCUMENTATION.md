@@ -616,6 +616,490 @@ curl http://localhost:3000/api/status/504
 
 ---
 
+---
+
+## Query Parameters & Filters
+
+### GET /api/query/simple - Single Query Parameter
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/query/simple?key=testvalue"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "params": { "key": "testvalue" },
+  "count": 1,
+  "receivedAt": "2025-10-08T15:27:20.021Z"
+}
+```
+
+**Error (no params):**
+```bash
+curl "http://localhost:3000/api/query/simple"
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "No query parameters provided",
+  "code": "NO_PARAMS"
+}
+```
+
+---
+
+### GET /api/query/multiple - Multiple Query Parameters
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/query/multiple?name=John&age=30&city=NYC"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "params": {
+    "name": "John",
+    "age": "30",
+    "city": "NYC"
+  },
+  "count": 3,
+  "keys": ["name", "age", "city"]
+}
+```
+
+---
+
+### GET /api/query/array - Array Query Parameters
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/query/array?tags[]=react&tags[]=nodejs&tags[]=express"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "arrayParams": {
+    "tags": ["react", "nodejs", "express"]
+  },
+  "scalarParams": {},
+  "arrayCount": 1,
+  "totalParams": 1
+}
+```
+
+---
+
+### GET /api/query/special-chars - Special Characters
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/query/special-chars?q=hello%20world%21"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "decoded": "hello world!",
+  "length": 12,
+  "containsSpecialChars": true,
+  "specialCharsReference": {
+    "space": " ",
+    "exclamation": "!",
+    "hash": "#",
+    "dollar": "$",
+    "percent": "%",
+    "ampersand": "&",
+    "plus": "+"
+  }
+}
+```
+
+---
+
+### GET /api/query/missing-required - Required Parameter Validation
+
+**Request (without required param):**
+```bash
+curl "http://localhost:3000/api/query/missing-required"
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Missing required parameter: id",
+  "code": "MISSING_PARAMETER",
+  "requiredParams": ["id"]
+}
+```
+
+**Request (with required param):**
+```bash
+curl "http://localhost:3000/api/query/missing-required?id=123"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Required parameter provided",
+  "id": "123"
+}
+```
+
+---
+
+## Headers Testing
+
+### GET /api/headers/echo - Echo All Request Headers
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/headers/echo"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "headers": {
+    "host": "localhost:3000",
+    "user-agent": "curl/8.9.1",
+    "accept": "*/*"
+  },
+  "count": 3,
+  "headerNames": ["host", "user-agent", "accept"]
+}
+```
+
+---
+
+### GET /api/headers/required - Require Specific Header
+
+**Request (without header):**
+```bash
+curl "http://localhost:3000/api/headers/required"
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Missing required header: X-API-Key",
+  "code": "MISSING_HEADER",
+  "requiredHeaders": ["X-API-Key"]
+}
+```
+
+**Request (with header):**
+```bash
+curl -H "X-API-Key: test123" "http://localhost:3000/api/headers/required"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Required header provided",
+  "apiKey": "test123"
+}
+```
+
+---
+
+### GET /api/headers/custom - Custom Response Headers
+
+**Request:**
+```bash
+curl -i "http://localhost:3000/api/headers/custom"
+```
+
+**Response Headers:**
+```
+X-Custom-Header: Custom-Value
+X-Request-Id: req_1759937280116_x6m9eo1rd
+X-Rate-Limit: 100
+X-Rate-Limit-Remaining: 99
+X-Server-Version: 1.0.0
+X-Response-Time: 42ms
+```
+
+**Response Body:**
+```json
+{
+  "success": true,
+  "message": "Custom headers set in response",
+  "customHeaders": {
+    "X-Custom-Header": "Custom-Value",
+    "X-Request-Id": "req_1759937280116_x6m9eo1rd",
+    "X-Rate-Limit": "100",
+    "X-Rate-Limit-Remaining": "99",
+    "X-Server-Version": "1.0.0",
+    "X-Response-Time": "42ms"
+  }
+}
+```
+
+---
+
+### GET /api/headers/case-sensitive - Header Case Sensitivity
+
+**Request:**
+```bash
+curl -H "X-Test-Header: TestValue" "http://localhost:3000/api/headers/case-sensitive"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Headers are case-insensitive in HTTP",
+  "headerValue": "TestValue",
+  "testedCases": ["x-test-header", "X-Test-Header", "X-TEST-HEADER"],
+  "note": "All variations of the header name will return the same value"
+}
+```
+
+---
+
+### GET /api/headers/compression - Compression Support
+
+**Request:**
+```bash
+curl -H "Accept-Encoding: gzip" --compressed "http://localhost:3000/api/headers/compression"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "This response can be compressed",
+  "acceptEncoding": "gzip",
+  "supportsCompression": true,
+  "data": [
+    /* 100 items */
+  ]
+}
+```
+
+---
+
+## Timing & Performance
+
+### GET /api/delay - Configurable Delay
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/delay?ms=500"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "requestedDelay": 500,
+  "actualDelay": 501,
+  "message": "Responded after 501ms"
+}
+```
+
+**Parameters:**
+- `ms` - Delay in milliseconds (0-10000)
+
+---
+
+### GET /api/timeout - Timeout Testing
+
+**Request:**
+```bash
+timeout 2 curl "http://localhost:3000/api/timeout"
+```
+
+**Behavior:** Never responds - connection hangs until client timeout
+
+---
+
+### GET /api/slow-stream - Chunked Streaming
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/slow-stream?chunks=3&delay=200"
+```
+
+**Response:**
+```
+Starting slow stream...
+
+Chunk 1/3 - Timestamp: 2025-10-08T15:29:35.181Z
+Chunk 2/3 - Timestamp: 2025-10-08T15:29:35.382Z
+Chunk 3/3 - Timestamp: 2025-10-08T15:29:35.583Z
+
+Stream completed!
+```
+
+**Parameters:**
+- `chunks` - Number of chunks (default: 10)
+- `delay` - Delay between chunks in ms (default: 500)
+
+---
+
+### GET /api/fast - Instant Response
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/fast"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Fast response",
+  "timestamp": "2025-10-08T15:29:26.628Z"
+}
+```
+
+---
+
+## Pagination
+
+### GET /api/pagination/offset - Offset-Based Pagination
+
+**Request:**
+```bash
+curl "http://localhost:3000/api/pagination/offset?page=2&limit=5"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 6,
+      "name": "Item 6",
+      "description": "Description for item 6",
+      "createdAt": "2025-07-05T15:27:44.534Z",
+      "status": "completed"
+    }
+    /* 4 more items */
+  ],
+  "pagination": {
+    "page": 2,
+    "limit": 5,
+    "totalItems": 100,
+    "totalPages": 20,
+    "hasNext": true,
+    "hasPrevious": true,
+    "nextPage": 3,
+    "previousPage": 1
+  }
+}
+```
+
+**Parameters:**
+- `page` - Page number (default: 1, min: 1)
+- `limit` - Items per page (default: 10, max: 100)
+
+---
+
+### GET /api/pagination/cursor - Cursor-Based Pagination
+
+**Request (first page):**
+```bash
+curl "http://localhost:3000/api/pagination/cursor?limit=5"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    /* 5 items */
+  ],
+  "pagination": {
+    "cursor": null,
+    "limit": 5,
+    "nextCursor": 5,
+    "hasMore": true,
+    "itemsReturned": 5
+  }
+}
+```
+
+**Request (next page):**
+```bash
+curl "http://localhost:3000/api/pagination/cursor?cursor=5&limit=5"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    /* Next 5 items */
+  ],
+  "pagination": {
+    "cursor": "5",
+    "limit": 5,
+    "nextCursor": 10,
+    "hasMore": true,
+    "itemsReturned": 5
+  }
+}
+```
+
+**Parameters:**
+- `cursor` - Cursor value from previous response (optional)
+- `limit` - Items per page (default: 10, max: 100)
+
+---
+
+### GET /api/pagination/link-header - RFC 5988 Link Headers
+
+**Request:**
+```bash
+curl -i "http://localhost:3000/api/pagination/link-header?page=2&limit=5"
+```
+
+**Response Headers:**
+```
+Link: <http://localhost:3000/pagination/link-header?page=1&limit=5>; rel="first",
+      <http://localhost:3000/pagination/link-header?page=1&limit=5>; rel="prev",
+      <http://localhost:3000/pagination/link-header?page=3&limit=5>; rel="next",
+      <http://localhost:3000/pagination/link-header?page=20&limit=5>; rel="last"
+```
+
+**Response Body:**
+```json
+{
+  "success": true,
+  "data": [
+    /* 5 items */
+  ],
+  "page": 2,
+  "totalPages": 20,
+  "totalItems": 100,
+  "itemsPerPage": 5
+}
+```
+
+**Parameters:**
+- `page` - Page number (default: 1)
+- `limit` - Items per page (default: 10)
+
+---
+
 ## Example Workflow
 
 1. **Generate a token for testing:**

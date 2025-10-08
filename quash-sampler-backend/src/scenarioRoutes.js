@@ -271,4 +271,407 @@ router.get('/status/504', (req, res) => {
   });
 });
 
+// ==================== Query Parameters & Filters ====================
+
+// GET /api/query/simple - Single query parameter
+router.get('/query/simple', (req, res) => {
+  const { key } = req.query;
+
+  if (!key) {
+    return res.status(400).json({
+      success: false,
+      message: 'No query parameters provided',
+      code: 'NO_PARAMS'
+    });
+  }
+
+  res.json({
+    success: true,
+    params: { key },
+    count: 1,
+    receivedAt: new Date().toISOString()
+  });
+});
+
+// GET /api/query/multiple - Multiple query parameters
+router.get('/query/multiple', (req, res) => {
+  const params = req.query;
+  const paramCount = Object.keys(params).length;
+
+  if (paramCount === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'No query parameters provided',
+      code: 'NO_PARAMS'
+    });
+  }
+
+  res.json({
+    success: true,
+    params: params,
+    count: paramCount,
+    keys: Object.keys(params)
+  });
+});
+
+// GET /api/query/array - Array query parameters
+router.get('/query/array', (req, res) => {
+  const params = req.query;
+  const arrayParams = {};
+  const scalarParams = {};
+
+  Object.keys(params).forEach(key => {
+    if (Array.isArray(params[key])) {
+      arrayParams[key] = params[key];
+    } else {
+      scalarParams[key] = params[key];
+    }
+  });
+
+  res.json({
+    success: true,
+    arrayParams,
+    scalarParams,
+    arrayCount: Object.keys(arrayParams).length,
+    totalParams: Object.keys(params).length
+  });
+});
+
+// GET /api/query/special-chars - Special characters in query params
+router.get('/query/special-chars', (req, res) => {
+  const { q } = req.query;
+
+  if (!q) {
+    return res.status(400).json({
+      success: false,
+      message: 'Query parameter "q" is required',
+      code: 'MISSING_PARAM'
+    });
+  }
+
+  // Show URL encoding info
+  const specialChars = {
+    space: ' ',
+    exclamation: '!',
+    hash: '#',
+    dollar: '$',
+    percent: '%',
+    ampersand: '&',
+    plus: '+'
+  };
+
+  res.json({
+    success: true,
+    decoded: q,
+    length: q.length,
+    containsSpecialChars: /[^a-zA-Z0-9]/.test(q),
+    specialCharsReference: specialChars
+  });
+});
+
+// GET /api/query/missing-required - Missing required parameter
+router.get('/query/missing-required', (req, res) => {
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required parameter: id',
+      code: 'MISSING_PARAMETER',
+      requiredParams: ['id']
+    });
+  }
+
+  res.json({
+    success: true,
+    message: 'Required parameter provided',
+    id
+  });
+});
+
+// ==================== Headers Testing ====================
+
+// GET /api/headers/echo - Echo all request headers
+router.get('/headers/echo', (req, res) => {
+  const headers = req.headers;
+
+  // Filter out some internal headers for cleaner output
+  const clientHeaders = { ...headers };
+
+  res.json({
+    success: true,
+    headers: clientHeaders,
+    count: Object.keys(clientHeaders).length,
+    headerNames: Object.keys(clientHeaders)
+  });
+});
+
+// GET /api/headers/required - Require specific header
+router.get('/headers/required', (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+
+  if (!apiKey) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required header: X-API-Key',
+      code: 'MISSING_HEADER',
+      requiredHeaders: ['X-API-Key']
+    });
+  }
+
+  res.json({
+    success: true,
+    message: 'Required header provided',
+    apiKey: apiKey
+  });
+});
+
+// GET /api/headers/custom - Return custom headers
+router.get('/headers/custom', (req, res) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  res.set({
+    'X-Custom-Header': 'Custom-Value',
+    'X-Request-Id': requestId,
+    'X-Rate-Limit': '100',
+    'X-Rate-Limit-Remaining': '99',
+    'X-Server-Version': '1.0.0',
+    'X-Response-Time': '42ms'
+  });
+
+  res.json({
+    success: true,
+    message: 'Custom headers set in response',
+    customHeaders: {
+      'X-Custom-Header': 'Custom-Value',
+      'X-Request-Id': requestId,
+      'X-Rate-Limit': '100',
+      'X-Rate-Limit-Remaining': '99',
+      'X-Server-Version': '1.0.0',
+      'X-Response-Time': '42ms'
+    }
+  });
+});
+
+// GET /api/headers/case-sensitive - Test header case sensitivity
+router.get('/headers/case-sensitive', (req, res) => {
+  // HTTP headers are case-insensitive
+  const testHeader = req.headers['x-test-header'];
+
+  res.json({
+    success: true,
+    message: 'Headers are case-insensitive in HTTP',
+    headerValue: testHeader || null,
+    testedCases: ['x-test-header', 'X-Test-Header', 'X-TEST-HEADER'],
+    note: 'All variations of the header name will return the same value'
+  });
+});
+
+// GET /api/headers/compression - gzip/deflate response
+router.get('/headers/compression', (req, res) => {
+  const acceptEncoding = req.headers['accept-encoding'];
+
+  // Generate large payload to demonstrate compression
+  const largeData = {
+    success: true,
+    message: 'This response can be compressed',
+    acceptEncoding: acceptEncoding || 'none',
+    supportsCompression: acceptEncoding ? acceptEncoding.includes('gzip') || acceptEncoding.includes('deflate') : false,
+    data: Array(100).fill(null).map((_, i) => ({
+      id: i + 1,
+      name: `Item ${i + 1}`,
+      description: `This is a sample item description for item number ${i + 1}`,
+      timestamp: new Date().toISOString()
+    }))
+  };
+
+  res.json(largeData);
+});
+
+// ==================== Timing & Performance ====================
+
+// GET /api/delay - Configurable delay (alias for /delayed)
+router.get('/delay', async (req, res) => {
+  const delayMs = Math.min(Math.max(Number(req.query.ms) || 1000, 0), 10000);
+
+  const startTime = Date.now();
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+  const endTime = Date.now();
+  const actualDelay = endTime - startTime;
+
+  res.json({
+    success: true,
+    requestedDelay: delayMs,
+    actualDelay: actualDelay,
+    message: `Responded after ${actualDelay}ms`
+  });
+});
+
+// GET /api/timeout - Never responds (test timeouts)
+router.get('/timeout', (req, res) => {
+  // Never send response - let client timeout
+  // Keep connection open but don't respond
+  console.log(`⏱️  Timeout endpoint hit - connection will hang`);
+  // Don't call res.send() or res.json()
+});
+
+// GET /api/slow-stream - Chunked slow response
+router.get('/slow-stream', async (req, res) => {
+  const chunks = parseInt(req.query.chunks) || 10;
+  const delayMs = parseInt(req.query.delay) || 500;
+
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  res.write('Starting slow stream...\n\n');
+
+  for (let i = 0; i < chunks; i++) {
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+    res.write(`Chunk ${i + 1}/${chunks} - Timestamp: ${new Date().toISOString()}\n`);
+  }
+
+  res.write('\nStream completed!');
+  res.end();
+});
+
+// GET /api/fast - Instant response
+router.get('/fast', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Fast response',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ==================== Pagination ====================
+
+// Helper function to generate mock data
+function generateMockData(count = 100) {
+  return Array(count).fill(null).map((_, i) => ({
+    id: i + 1,
+    name: `Item ${i + 1}`,
+    description: `Description for item ${i + 1}`,
+    createdAt: new Date(Date.now() - (count - i) * 86400000).toISOString(),
+    status: i % 3 === 0 ? 'active' : i % 3 === 1 ? 'pending' : 'completed'
+  }));
+}
+
+// GET /api/pagination/offset - Offset-based pagination
+router.get('/pagination/offset', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 100); // Max 100 per page
+
+  const allData = generateMockData(100);
+  const totalItems = allData.length;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  // Validate page number
+  if (page < 1) {
+    return res.status(400).json({
+      success: false,
+      message: 'Page number must be >= 1',
+      code: 'INVALID_PAGE'
+    });
+  }
+
+  const offset = (page - 1) * limit;
+  const paginatedData = allData.slice(offset, offset + limit);
+
+  res.json({
+    success: true,
+    data: paginatedData,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      nextPage: page < totalPages ? page + 1 : null,
+      previousPage: page > 1 ? page - 1 : null
+    }
+  });
+});
+
+// GET /api/pagination/cursor - Cursor-based pagination
+router.get('/pagination/cursor', (req, res) => {
+  const cursor = req.query.cursor;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+
+  const allData = generateMockData(100);
+
+  let startIndex = 0;
+  if (cursor) {
+    // Find the position based on cursor (using ID as cursor)
+    const cursorId = parseInt(cursor);
+    startIndex = allData.findIndex(item => item.id === cursorId);
+
+    if (startIndex === -1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid cursor',
+        code: 'INVALID_CURSOR'
+      });
+    }
+
+    startIndex += 1; // Start from next item
+  }
+
+  const paginatedData = allData.slice(startIndex, startIndex + limit);
+  const hasMore = startIndex + limit < allData.length;
+  const nextCursor = hasMore ? paginatedData[paginatedData.length - 1].id : null;
+
+  res.json({
+    success: true,
+    data: paginatedData,
+    pagination: {
+      cursor: cursor || null,
+      limit,
+      nextCursor,
+      hasMore,
+      itemsReturned: paginatedData.length
+    }
+  });
+});
+
+// GET /api/pagination/link-header - RFC 5988 Link headers
+router.get('/pagination/link-header', (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const allData = generateMockData(100);
+  const totalItems = allData.length;
+  const totalPages = Math.ceil(totalItems / limit);
+
+  const offset = (page - 1) * limit;
+  const paginatedData = allData.slice(offset, offset + limit);
+
+  // Build Link header (RFC 5988)
+  const baseUrl = `${req.protocol}://${req.get('host')}${req.path}`;
+  const links = [];
+
+  links.push(`<${baseUrl}?page=1&limit=${limit}>; rel="first"`);
+
+  if (page > 1) {
+    links.push(`<${baseUrl}?page=${page - 1}&limit=${limit}>; rel="prev"`);
+  }
+
+  if (page < totalPages) {
+    links.push(`<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`);
+  }
+
+  links.push(`<${baseUrl}?page=${totalPages}&limit=${limit}>; rel="last"`);
+
+  res.set('Link', links.join(', '));
+
+  res.json({
+    success: true,
+    data: paginatedData,
+    page,
+    totalPages,
+    totalItems,
+    itemsPerPage: limit
+  });
+});
+
 module.exports = router;
