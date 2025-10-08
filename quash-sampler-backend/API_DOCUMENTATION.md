@@ -322,6 +322,300 @@ This token can be used for all authenticated endpoints without going through the
 
 ---
 
+## HTTP Status Code Testing Endpoints
+
+### 2xx Success Responses
+
+#### POST /api/status/201 - Created
+
+**Request:**
+```bash
+curl -X POST http://localhost:3000/api/status/201
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource created successfully",
+  "id": "resource_1759936647266",
+  "createdAt": "2025-10-08T15:17:27.266Z"
+}
+```
+
+**Headers:** `Location: /api/resources/{id}`
+
+---
+
+#### PUT /api/status/204 - No Content
+
+**Request:**
+```bash
+curl -X PUT http://localhost:3000/api/status/204
+```
+
+**Response:** Empty (no content)
+
+**Status:** 204
+
+---
+
+#### GET /api/status/206 - Partial Content
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/206
+```
+
+**Response:**
+```
+This is the full con
+```
+
+**Headers:** `Content-Range: bytes 0-20/76`
+
+---
+
+### 3xx Redirect Responses
+
+#### GET /api/redirect/301 - Permanent Redirect
+
+**Request:**
+```bash
+curl http://localhost:3000/api/redirect/301
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource has been moved permanently",
+  "redirectTo": "/api/status/ok"
+}
+```
+
+**Headers:** `Location: /api/status/ok`
+
+**Status:** 301
+
+---
+
+#### GET /api/redirect/302 - Temporary Redirect
+
+**Request:**
+```bash
+curl http://localhost:3000/api/redirect/302
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource temporarily redirected",
+  "redirectTo": "/api/status/ok"
+}
+```
+
+**Headers:** `Location: /api/status/ok`
+
+**Status:** 302
+
+---
+
+#### GET /api/redirect/304 - Not Modified
+
+**Request (without ETag):**
+```bash
+curl http://localhost:3000/api/redirect/304
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Resource content",
+  "data": { "value": "sample data" }
+}
+```
+
+**Request (with matching ETag):**
+```bash
+curl -H "If-None-Match: \"abc123\"" http://localhost:3000/api/redirect/304
+```
+
+**Response:** Empty (not modified)
+
+**Status:** 304
+
+---
+
+### 4xx Client Error Responses
+
+#### GET /api/status/400 - Bad Request
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/400
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "The request was malformed or invalid",
+  "code": "BAD_REQUEST",
+  "errors": [
+    { "field": "email", "message": "Invalid email format" }
+  ]
+}
+```
+
+**Status:** 400
+
+---
+
+#### GET /api/status/401 - Unauthorized
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/401
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Authentication required to access this resource",
+  "code": "UNAUTHORIZED"
+}
+```
+
+**Headers:** `WWW-Authenticate: Bearer realm="api"`
+
+**Status:** 401
+
+---
+
+#### GET /api/status/403 - Forbidden
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/403
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to access this resource",
+  "code": "FORBIDDEN",
+  "requiredRole": "admin"
+}
+```
+
+**Status:** 403
+
+---
+
+#### GET /api/status/429 - Too Many Requests
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/429
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Too many requests. Please try again later.",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retryAfter": 60
+}
+```
+
+**Headers:**
+- `Retry-After: 60`
+- `X-RateLimit-Limit: 100`
+- `X-RateLimit-Remaining: 0`
+- `X-RateLimit-Reset: {timestamp}`
+
+**Status:** 429
+
+---
+
+### 5xx Server Error Responses
+
+#### GET /api/status/502 - Bad Gateway
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/502
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "The upstream server returned an invalid response",
+  "code": "BAD_GATEWAY",
+  "upstreamService": "payment-service"
+}
+```
+
+**Status:** 502
+
+---
+
+#### GET /api/status/503 - Service Unavailable
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/503
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "Service is temporarily unavailable due to maintenance",
+  "code": "SERVICE_UNAVAILABLE",
+  "retryAfter": 120,
+  "maintenanceWindow": {
+    "start": "2025-10-08T15:17:45.838Z",
+    "estimatedEnd": "2025-10-08T15:19:45.838Z"
+  }
+}
+```
+
+**Headers:** `Retry-After: 120`
+
+**Status:** 503
+
+---
+
+#### GET /api/status/504 - Gateway Timeout
+
+**Request:**
+```bash
+curl http://localhost:3000/api/status/504
+```
+
+**Response:**
+```json
+{
+  "success": false,
+  "message": "The upstream server failed to respond in time",
+  "code": "GATEWAY_TIMEOUT",
+  "upstreamService": "database",
+  "timeout": "30s"
+}
+```
+
+**Status:** 504
+
+---
+
 ## Example Workflow
 
 1. **Generate a token for testing:**
